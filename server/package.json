@@ -1,6 +1,6 @@
 {
 	"name": "server",
-	"main": "src/index.ts",
+	"main": "src/index.js",
 	"private": true,
 	"scripts": {
 		"build": "tsc",

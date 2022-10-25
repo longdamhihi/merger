@@ -18,8 +18,6 @@ WORKDIR /app/server
 
 # Install server packages
 COPY server/package*.json ./
-RUN npm install --production --ignore-scripts
-RUN npm install typescript
 
 # Build server
 COPY server ./
