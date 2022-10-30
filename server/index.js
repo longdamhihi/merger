@@ -68,8 +68,7 @@ app.post('/merge', upload.array('files', 1000), (req, res) => {
 
         req.files.forEach(file => {
 
-            list += `file ${file.filename}`
-            list += "n"
+            list += `file ${file.filename}\n`
 
         });
 
