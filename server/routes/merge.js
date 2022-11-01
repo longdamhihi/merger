@@ -12,6 +12,42 @@ var outputFilePath = Date.now() + '-output.mp4'
 var dir = 'public';
 var subDirectory = 'public/uploads'
 
+require('dotenv').config();
+const AWS = require('aws-sdk');
+// S3 setup
+const bucketName = "n10648046-merger-a2";
+const s3 = new AWS.S3({ apiVersion: "2022-03-01" });
+
+s3.createBucket({ Bucket: bucketName })
+    .promise()
+    .then(() => console.log(`Created bucket: ${bucketName}`))
+    .catch((err) => {
+        // We will ignore 409 errors which indicate that the bucket already exists
+        if (err.statusCode !== 409) {
+            console.log(`Error creating bucket: ${err}`);
+        }
+    });
+
+const uploadFile = (fileName) => {
+    // Read content from the file
+    const fileContent = fs.readFileSync(fileName);
+
+    // Setting up S3 upload parameters
+    const params = {
+        Bucket: bucketName,
+        Key: fileName, // File name you want to save as in S3
+        Body: fileContent
+    };
+
+    // Uploading files to the bucket
+    s3.upload(params, function (err, data) {
+        if (err) {
+            throw err;
+        }
+        console.log(`File uploaded successfully. ${data.Location}`);
+    });
+};
+
 if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir);
     fs.mkdirSync(subDirectory)
@@ -27,7 +63,7 @@ var storage = multer.diskStorage({
 })
 
 const videoFilter = function (req, file, cb) {
-    // Accept videos only
+    // Accept only files with the mp4 extension
     if (!file.originalname.match(/.(mp4)$/)) {
         req.fileValidationError = 'Only video files are allowed!';
         return cb(new Error('Only video files are allowed!'), false);
@@ -56,6 +92,8 @@ router.post('/merge', upload.array('files', 1000), (req, res) => {
             }
             else {
                 console.log("Videos successfully merged.")
+
+                uploadFile(outputFilePath)
 
                 res.download(outputFilePath, (err) => {
                     if (err) throw err
