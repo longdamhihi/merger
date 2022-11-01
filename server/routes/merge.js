@@ -5,48 +5,15 @@ const fs = require('fs')
 const path = require('path')
 const { exec } = require('child_process')
 const multer = require('multer')
+const s3 = require('../services/s3')
+const redis = require('../services/redis')
+
 var list = ""
 var listFilePath = 'public/uploads/' + Date.now() + 'list.txt'
 var outputFilePath = Date.now() + '-output.mp4'
 
 var dir = 'public';
 var subDirectory = 'public/uploads'
-
-require('dotenv').config();
-const AWS = require('aws-sdk');
-// S3 setup
-const bucketName = "n10648046-merger-a2";
-const s3 = new AWS.S3({ apiVersion: "2022-03-01" });
-
-s3.createBucket({ Bucket: bucketName })
-    .promise()
-    .then(() => console.log(`Created bucket: ${bucketName}`))
-    .catch((err) => {
-        // We will ignore 409 errors which indicate that the bucket already exists
-        if (err.statusCode !== 409) {
-            console.log(`Error creating bucket: ${err}`);
-        }
-    });
-
-const uploadFile = (fileName) => {
-    // Read content from the file
-    const fileContent = fs.readFileSync(fileName);
-
-    // Setting up S3 upload parameters
-    const params = {
-        Bucket: bucketName,
-        Key: fileName, // File name you want to save as in S3
-        Body: fileContent
-    };
-
-    // Uploading files to the bucket
-    s3.upload(params, function (err, data) {
-        if (err) {
-            throw err;
-        }
-        console.log(`File uploaded successfully. ${data.Location}`);
-    });
-};
 
 if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir);
@@ -93,7 +60,7 @@ router.post('/merge', upload.array('files', 1000), (req, res) => {
             else {
                 console.log("Videos successfully merged.")
 
-                uploadFile(outputFilePath)
+                s3.uploadFile(outputFilePath)
 
                 res.download(outputFilePath, (err) => {
                     if (err) throw err
