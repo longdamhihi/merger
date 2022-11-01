@@ -62,6 +62,13 @@ router.post('/merge', upload.array('files', 1000), (req, res) => {
 
                 s3.uploadFile(outputFilePath)
 
+                // req.files.forEach(file => {
+                //     fs.unlinkSync(file.path)
+                // });
+
+                // fs.unlinkSync(listFilePath)
+                // fs.unlinkSync(outputFilePath)
+
                 res.download(outputFilePath, (err) => {
                     if (err) throw err
                     req.files.forEach(file => {
