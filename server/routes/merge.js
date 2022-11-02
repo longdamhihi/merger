@@ -13,8 +13,6 @@ var list = ""
 var listFilePath = 'public/uploads/' + Date.now() + 'list.txt'
 var outputFilePath = Date.now() + '-output.mp4'
 
-const bucketName = "n10648046-merger-a2";
-
 var dir = 'public';
 var subDirectory = 'public/uploads'
 
@@ -66,7 +64,7 @@ router.post('/merge', upload.array('files', 1000), (req, res) => {
                 redis.getFile(outputFilePath).then((result) => {
                     if (result) {
                         console.log('Downloading from Redis')
-                        // res.download(result);
+                        res.download(outputFilePath)
                     } else {
                         s3.getFile(outputFilePath)
                             .promise()
@@ -87,7 +85,6 @@ router.post('/merge', upload.array('files', 1000), (req, res) => {
                                         req.files.forEach(file => {
                                             fs.unlinkSync(file.path)
                                         });
-
                                         fs.unlinkSync(listFilePath)
                                         fs.unlinkSync(outputFilePath)
                                     })
