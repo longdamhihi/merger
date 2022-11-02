@@ -1,14 +1,13 @@
 var express = require('express');
 var router = express.Router();
 
-
-const axios = require('axios');
+const fs = require('fs')
 const redis = require('redis');
-const app = express();
+
+const redisClient = redis.createClient();
 
 // Redis setup
 function connect() {
-    const redisClient = redis.createClient();
     redisClient.connect()
         .catch((err) => {
             console.log(err);
@@ -16,6 +15,21 @@ function connect() {
     console.log(`Successfully connected to Redis Server`)
 }
 
+function uploadFile(fileName) {
+    // Read content from the file
+    const fileContent = fs.readFileSync(fileName);
 
+    redisClient.setEx(
+        fileName,
+        3600,
+        fileContent
+    );
 
-module.exports = { router, connect };
+    console.log(`File uploaded to Redis successfully`);
+}
+
+function getFile(fileName) {
+    return redisClient.get(fileName)
+}
+
+module.exports = { router, connect, uploadFile, getFile };

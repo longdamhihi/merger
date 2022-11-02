@@ -4,6 +4,7 @@ var router = express.Router();
 const fs = require('fs')
 const path = require('path')
 const { exec } = require('child_process')
+const axios = require('axios');
 const multer = require('multer')
 const s3 = require('../services/s3')
 const redis = require('../services/redis')
@@ -11,6 +12,8 @@ const redis = require('../services/redis')
 var list = ""
 var listFilePath = 'public/uploads/' + Date.now() + 'list.txt'
 var outputFilePath = Date.now() + '-output.mp4'
+
+const bucketName = "n10648046-merger-a2";
 
 var dir = 'public';
 var subDirectory = 'public/uploads'
@@ -60,24 +63,70 @@ router.post('/merge', upload.array('files', 1000), (req, res) => {
             else {
                 console.log("Videos successfully merged.")
 
-                s3.uploadFile(outputFilePath)
+                redis.getFile(outputFilePath).then((result) => {
+                    if (result) {
+                        console.log('Downloading from Redis')
+                        // res.download(result);
+                    } else {
+                        s3.getFile(outputFilePath)
+                            .promise()
+                            .then((result) => {
+                                console.log('Downloading from S3')
+                                res.attachment(outputFilePath);
+                                var fileStream = result.createReadStream()
+                                fileStream.pipe(res)
+                            }).catch((err) => {
+                                if (err.statusCode === 404) {
+                                    axios
+                                    redis.uploadFile(outputFilePath)
+                                    s3.uploadFile(outputFilePath)
 
-                // req.files.forEach(file => {
-                //     fs.unlinkSync(file.path)
-                // });
+                                    console.log('Downloading from server')
+                                    res.download(outputFilePath, (err) => {
+                                        if (err) throw err
+                                        req.files.forEach(file => {
+                                            fs.unlinkSync(file.path)
+                                        });
 
-                // fs.unlinkSync(listFilePath)
-                // fs.unlinkSync(outputFilePath)
+                                        fs.unlinkSync(listFilePath)
+                                        fs.unlinkSync(outputFilePath)
+                                    })
+                                } else {
+                                    res.json(err);
+                                }
+                            });
+                    }
+                });
 
-                res.download(outputFilePath, (err) => {
-                    if (err) throw err
-                    req.files.forEach(file => {
-                        fs.unlinkSync(file.path)
-                    });
+                // s3.getFile(outputFilePath)
+                //     .promise()
+                //     .then((result) => {
+                //         console.log('Downloading from S3')
+                //         res.attachment(outputFilePath);
+                //         var fileStream = result.createReadStream()
+                //         fileStream.pipe(res)
+                //     }).catch((err) => {
+                //         if (err.statusCode === 404) {
+                //             axios
+                //             redis.uploadFile(outputFilePath)
+                //             s3.uploadFile(outputFilePath)
 
-                    fs.unlinkSync(listFilePath)
-                    fs.unlinkSync(outputFilePath)
-                })
+                //             console.log('Downloading from server')
+                //             res.download(outputFilePath, (err) => {
+                //                 if (err) throw err
+                //                 req.files.forEach(file => {
+                //                     fs.unlinkSync(file.path)
+                //                 });
+
+                //                 fs.unlinkSync(listFilePath)
+                //                 fs.unlinkSync(outputFilePath)
+                //             })
+                //         } else {
+                //             res.json(err);
+                //         }
+                //     });
+
+
             }
         })
     }

@@ -41,4 +41,10 @@ function uploadFile(fileName) {
     });
 };
 
-module.exports = { router, uploadFile, connect };
+function getFile(fileName) {
+    const params = { Bucket: bucketName, Key: fileName };
+
+    return s3.getObject(params)
+}
+
+module.exports = { router, uploadFile, connect, getFile };
