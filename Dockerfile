@@ -1,21 +1,24 @@
 # ------------ Server build ------------ #
-FROM node:lts-alpine AS server-build
-WORKDIR /app/server
+FROM node:14-alpine
+
+# Create app directory
+WORKDIR /usr/src/app
+
+# Set basic AWS credentials 
+ENV AWS_ACCESS_KEY_ID XXID
+ENV AWS_SECRET_ACCESS_KEY XXSECRET
+ENV AWS_SESSION_TOKEN XXTOKEN
 
 # Install server packages
-COPY server/package*.json ./
+COPY package*.json ./
 
-RUN sudo apt update
-RUN sudo apt install ffmpeg
+RUN apk update && apk add ffmpeg
 RUN npm install
 
 # Build server
-COPY server ./
+COPY . .
 
-# Set environment variables
-ENV NODE_ENV=production
-ENV PORT=8000
-EXPOSE 8000
+EXPOSE 3000
 
 # Run the application
 CMD ["node", "index"]
