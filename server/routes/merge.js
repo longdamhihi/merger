@@ -45,7 +45,12 @@ router.post('/merge', upload.array('files', 1000), (req, res) => {
     list = ""
     if (req.files) {
         req.files.forEach(file => {
-
+            exec(`ffmpeg -i ${file.filename} -acodec libvo_aacenc -vcodec libx264 -s 1920x1080 -r 60 -strict experimental ${file.filename}`, (error) => {
+                if (error) {
+                    console.log(`error: ${error.message}`);
+                    return;
+                }
+            })
             list += `file ${file.filename}\n`
         });
 
@@ -64,15 +69,29 @@ router.post('/merge', upload.array('files', 1000), (req, res) => {
                 redis.getFile(outputFilePath).then((result) => {
                     if (result) {
                         console.log('Downloading from Redis')
-                        res.download(outputFilePath)
+                        res.download(outputFilePath, (err) => {
+                            if (err) throw err
+                            req.files.forEach(file => {
+                                fs.unlinkSync(file.path)
+                            });
+                            fs.unlinkSync(listFilePath)
+                            fs.unlinkSync(outputFilePath)
+                        })
                     } else {
                         s3.getFile(outputFilePath)
                             .promise()
                             .then((result) => {
                                 console.log('Downloading from S3')
-                                res.attachment(outputFilePath);
-                                var fileStream = result.createReadStream()
-                                fileStream.pipe(res)
+                                if (result) {
+                                    res.download(outputFilePath, (err) => {
+                                        if (err) throw err
+                                        req.files.forEach(file => {
+                                            fs.unlinkSync(file.path)
+                                        });
+                                        fs.unlinkSync(listFilePath)
+                                        fs.unlinkSync(outputFilePath)
+                                    })
+                                }
                             }).catch((err) => {
                                 if (err.statusCode === 404) {
                                     axios
@@ -85,6 +104,7 @@ router.post('/merge', upload.array('files', 1000), (req, res) => {
                                         req.files.forEach(file => {
                                             fs.unlinkSync(file.path)
                                         });
+
                                         fs.unlinkSync(listFilePath)
                                         fs.unlinkSync(outputFilePath)
                                     })
@@ -94,35 +114,6 @@ router.post('/merge', upload.array('files', 1000), (req, res) => {
                             });
                     }
                 });
-
-                // s3.getFile(outputFilePath)
-                //     .promise()
-                //     .then((result) => {
-                //         console.log('Downloading from S3')
-                //         res.attachment(outputFilePath);
-                //         var fileStream = result.createReadStream()
-                //         fileStream.pipe(res)
-                //     }).catch((err) => {
-                //         if (err.statusCode === 404) {
-                //             axios
-                //             redis.uploadFile(outputFilePath)
-                //             s3.uploadFile(outputFilePath)
-
-                //             console.log('Downloading from server')
-                //             res.download(outputFilePath, (err) => {
-                //                 if (err) throw err
-                //                 req.files.forEach(file => {
-                //                     fs.unlinkSync(file.path)
-                //                 });
-
-                //                 fs.unlinkSync(listFilePath)
-                //                 fs.unlinkSync(outputFilePath)
-                //             })
-                //         } else {
-                //             res.json(err);
-                //         }
-                //     });
-
 
             }
         })
