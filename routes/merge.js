@@ -42,114 +42,122 @@ const videoFilter = function (req, file, cb) {
 var upload = multer({ storage: storage, fileFilter: videoFilter })
 
 // ---------------------------------------------------------------------------------
-//                      Testing script for auto scaling 
-// Uncomment the code section below and comment out the main application section to use
+//                      Get request used to test auto scaling 
 // ----------------------------------------------------------------------------------
 router.get('/merge', (req, res) => {
-    exec(`ffmpeg -safe 0 -f concat -i ./samples/test.txt -c copy output.mp4`, (error, stdout, stderr) => {
+    exec(`ffmpeg -safe 0 -f concat -i ./samples/test.txt -c copy output.flv`, (error, stdout, stderr) => {
         if (error) {
             console.log(`error: ${error.message}`);
             return;
         }
         else {
-            console.log("Videos successfully merged.")
-            fs.unlinkSync('output.mp4')
-            res.sendStatus(200)
+            exec(`ffmpeg -i output.flv -vcodec libx264 -acodec aac output.mp4`, (error, stdout, stderr) => {
+                if (error) {
+                    console.log(`error: ${error.message}`);
+                    return;
+                }
+                else {
+                    console.log("Videos successfully merged.")
+                    fs.unlinkSync('output.flv')
+                    fs.unlinkSync('output.mp4')
+                    res.sendStatus(200)
+                }
+            })
         }
     })
 })
 
 // ----------------------------------------------------------------------------------
-//                          End testing script
+//                          End get request
 // ----------------------------------------------------------------------------------
 
 
 
 
 // ----------------------------------------------------------------------------------
-//                          Begin main application
+//                          Post request for regular usage
 // ----------------------------------------------------------------------------------
 
-// router.post('/merge', upload.array('files', 1000), (req, res) => {
-//     list = ""
-//     if (req.files) {
-//         req.files.forEach(file => {
-//             exec(`ffmpeg -i ${file.filename} -acodec libvo_aacenc -vcodec libx264 -s 1920x1080 -r 60 -strict experimental -c copy ${file.filename}`, (error) => {
-//                 if (error) {
-//                     return;
-//                 }
-//             })
-//             list += `file ${file.filename}\n`
-//         });
+router.post('/merge', upload.array('files', 1000), (req, res) => {
+    list = ""
+    if (req.files) {
+        req.files.forEach(file => {
+            exec(`ffmpeg -i ${file.filename} -acodec libvo_aacenc -vcodec libx264 -s 1920x1080 -r 60 -strict experimental -c copy ${file.filename}`, (error) => {
+                if (error) {
+                    return;
+                }
+            })
+            list += `file ${file.filename}\n`
+        });
 
-//         var writeStream = fs.createWriteStream(listFilePath)
-//         writeStream.write(list)
-//         writeStream.end()
+        var writeStream = fs.createWriteStream(listFilePath)
+        writeStream.write(list)
+        writeStream.end()
 
-//         exec(`ffmpeg -safe 0 -f concat -i ${listFilePath} -c copy ${outputFilePath}`, (error, stdout, stderr) => {
-//             if (error) {
-//                 console.log(`error: ${error.message}`);
-//                 return;
-//             }
-//             else {
-//                 console.log("Videos successfully merged.")
+        exec(`ffmpeg -safe 0 -f concat -i ${listFilePath} -c copy ${outputFilePath}`, (error, stdout, stderr) => {
+            if (error) {
+                console.log(`error: ${error.message}`);
+                return;
+            }
+            else {
+                console.log("Videos successfully merged.")
 
-//                 redis.getFile(outputFilePath).then((result) => {
-//                     if (result) {
-//                         console.log('Downloading from Redis')
-//                         res.download(outputFilePath, (err) => {
-//                             if (err) throw err
-//                             req.files.forEach(file => {
-//                                 fs.unlinkSync(file.path)
-//                             });
-//                             fs.unlinkSync(listFilePath)
-//                             fs.unlinkSync(outputFilePath)
-//                         })
-//                     } else {
-//                         s3.getFile(outputFilePath)
-//                             .promise()
-//                             .then((result) => {
-//                                 console.log('Downloading from S3')
-//                                 if (result) {
-//                                     res.download(outputFilePath, (err) => {
-//                                         if (err) throw err
-//                                         req.files.forEach(file => {
-//                                             fs.unlinkSync(file.path)
-//                                         });
-//                                         fs.unlinkSync(listFilePath)
-//                                         fs.unlinkSync(outputFilePath)
-//                                     })
-//                                 }
-//                             }).catch((err) => {
-//                                 if (err.statusCode === 404) {
-//                                     axios
-//                                     redis.uploadFile(outputFilePath)
-//                                     s3.uploadFile(outputFilePath)
+                redis.getFile(outputFilePath).then((result) => {
+                    if (result) {
+                        console.log('Downloading from Redis')
+                        res.download(outputFilePath, (err) => {
+                            if (err) throw err
+                            req.files.forEach(file => {
+                                fs.unlinkSync(file.path)
+                            });
+                            fs.unlinkSync(listFilePath)
+                            fs.unlinkSync(outputFilePath)
+                        })
+                    } else {
+                        s3.getFile(outputFilePath)
+                            .promise()
+                            .then((result) => {
+                                console.log('Downloading from S3')
+                                if (result) {
+                                    res.download(outputFilePath, (err) => {
+                                        if (err) throw err
+                                        req.files.forEach(file => {
+                                            fs.unlinkSync(file.path)
+                                        });
+                                        fs.unlinkSync(listFilePath)
+                                        fs.unlinkSync(outputFilePath)
+                                    })
+                                }
+                            }).catch((err) => {
+                                if (err.statusCode === 404) {
+                                    axios
+                                    redis.uploadFile(outputFilePath)
+                                    s3.uploadFile(outputFilePath)
 
-//                                     console.log('Downloading from server')
-//                                     res.download(outputFilePath, (err) => {
-//                                         if (err) throw err
-//                                         req.files.forEach(file => {
-//                                             fs.unlinkSync(file.path)
-//                                         });
+                                    console.log('Downloading from server')
+                                    res.download(outputFilePath, (err) => {
+                                        if (err) throw err
+                                        req.files.forEach(file => {
+                                            fs.unlinkSync(file.path)
+                                        });
 
-//                                         fs.unlinkSync(listFilePath)
-//                                         fs.unlinkSync(outputFilePath)
-//                                     })
-//                                 } else {
-//                                     res.json(err);
-//                                 }
-//                             });
-//                     }
-//                 });
+                                        fs.unlinkSync(listFilePath)
+                                        fs.unlinkSync(outputFilePath)
+                                    })
+                                } else {
+                                    res.json(err);
+                                }
+                            });
+                    }
+                });
 
-//             }
-//         })
-//     }
-// });
+            }
+        })
+    }
+});
 
 // ----------------------------------------------------------------------------------
-//                          End main application
+//                          End post request
 // ----------------------------------------------------------------------------------
 
 module.exports = router;

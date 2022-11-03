@@ -6,10 +6,6 @@ const s3 = require('./services/s3')
 const redis = require('./services/redis')
 const bodyParser = require('body-parser')
 
-console.log("Access ID: " + process.env.AWS_ACCESS_KEY_ID);
-console.log("Secret Key: " + process.env.AWS_SECRET_ACCESS_KEY);
-console.log("Session Token: " + process.env.AWS_SESSION_TOKEN);
-
 var AWS = require("aws-sdk");
 var awsConfig = {
     region: "ap-southeast-2",
@@ -31,10 +27,8 @@ app.get('/', (req, res) => {
     res.sendFile(__dirname + "/views/index.html")
 })
 
-// Comment out this line for testing scalability
-// app.post('/merge', merge);
+app.post('/merge', merge);
 
-// Uncomment this line for testing scalability
 app.get('/merge', merge);
 
 app.listen(PORT, () => {
