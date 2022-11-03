@@ -45,7 +45,7 @@ router.post('/merge', upload.array('files', 1000), (req, res) => {
     list = ""
     if (req.files) {
         req.files.forEach(file => {
-            exec(`ffmpeg -i ${file.filename} -acodec libvo_aacenc -vcodec libx264 -s 1920x1080 -r 60 -strict experimental ${file.filename}`, (error) => {
+            exec(`ffmpeg -i ${file.filename} -acodec libvo_aacenc -vcodec libx264 -s 1920x1080 -r 60 -strict experimental -c copy ${file.filename}`, (error) => {
                 if (error) {
                     console.log(`error: ${error.message}`);
                     return;
