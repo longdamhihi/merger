@@ -53,7 +53,7 @@ router.get('/merge', (req, res) => {
         }
         else {
             console.log("Videos successfully merged.")
-            // fs.unlinkSync('output.mp4')
+            fs.unlinkSync('output.mp4')
             res.sendStatus(200)
         }
     })
