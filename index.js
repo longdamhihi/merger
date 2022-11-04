@@ -6,6 +6,7 @@ const s3 = require('./services/s3')
 const redis = require('./services/redis')
 const bodyParser = require('body-parser')
 
+// Update AWS configs
 var AWS = require("aws-sdk");
 var awsConfig = {
     region: "ap-southeast-2",
@@ -21,14 +22,17 @@ app.use(express.static('public'))
 
 const PORT = process.env.PORT || 8000
 
+// Home page
 app.get('/', (req, res) => {
     redis.connect()
     s3.connect()
     res.sendFile(__dirname + "/views/index.html")
 })
 
+// Get /merge endpoint for auto testing
 app.post('/merge', merge);
 
+// Post /merge endpoint for videos merging
 app.get('/merge', merge);
 
 app.listen(PORT, () => {

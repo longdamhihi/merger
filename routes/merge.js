@@ -9,10 +9,12 @@ const multer = require('multer')
 const s3 = require('../services/s3')
 const redis = require('../services/redis')
 
+// Create variables for video merging
 var list = ""
 var listFilePath = 'public/uploads/' + Date.now() + 'list.txt'
 var outputFilePath = Date.now() + '-output.mp4'
 
+// Store temporal files into Public/Uploads
 var dir = 'public';
 var subDirectory = 'public/uploads'
 
@@ -30,8 +32,8 @@ var storage = multer.diskStorage({
     }
 })
 
+// Accept only files with the mp4 extension
 const videoFilter = function (req, file, cb) {
-    // Accept only files with the mp4 extension
     if (!file.originalname.match(/.(mp4)$/)) {
         req.fileValidationError = 'Only video files are allowed!';
         return cb(new Error('Only video files are allowed!'), false);
@@ -90,18 +92,19 @@ router.post('/merge', upload.array('files', 1000), (req, res) => {
             list += `file ${file.filename}\n`
         });
 
+        // Create a text file containing all the filenames
         var writeStream = fs.createWriteStream(listFilePath)
         writeStream.write(list)
         writeStream.end()
 
+        // Execute ffmpeg commands
         exec(`ffmpeg -safe 0 -f concat -i ${listFilePath} -c copy ${outputFilePath}`, (error, stdout, stderr) => {
             if (error) {
                 console.log(`error: ${error.message}`);
                 return;
             }
             else {
-                console.log("Videos successfully merged.")
-
+                // Try looking for the same recently merged file in Redis
                 redis.getFile(outputFilePath).then((result) => {
                     if (result) {
                         console.log('Downloading from Redis')
@@ -114,6 +117,8 @@ router.post('/merge', upload.array('files', 1000), (req, res) => {
                             fs.unlinkSync(outputFilePath)
                         })
                     } else {
+                        // Not found in Redis
+                        // Try looking for the same recently merged file in S3
                         s3.getFile(outputFilePath)
                             .promise()
                             .then((result) => {
@@ -129,11 +134,14 @@ router.post('/merge', upload.array('files', 1000), (req, res) => {
                                     })
                                 }
                             }).catch((err) => {
+                                // Not found in S3
+                                // Download from server
                                 if (err.statusCode === 404) {
                                     axios
                                     redis.uploadFile(outputFilePath)
                                     s3.uploadFile(outputFilePath)
 
+                                    console.log("Videos successfully merged.")
                                     console.log('Downloading from server')
                                     res.download(outputFilePath, (err) => {
                                         if (err) throw err

@@ -28,6 +28,7 @@ function uploadFile(fileName) {
     console.log(`File uploaded to Redis successfully`);
 }
 
+// Get file from Redis
 function getFile(fileName) {
     return redisClient.get(fileName)
 }

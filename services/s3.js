@@ -41,6 +41,7 @@ function uploadFile(fileName) {
     });
 };
 
+// Get file from the Bucket
 function getFile(fileName) {
     const params = { Bucket: bucketName, Key: fileName };
 
