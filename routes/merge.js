@@ -1,6 +1,7 @@
 var express = require('express');
 var router = express.Router();
 
+const { performance } = require('perf_hooks');
 const fs = require('fs')
 const path = require('path')
 const { exec } = require('child_process')
@@ -47,26 +48,39 @@ var upload = multer({ storage: storage, fileFilter: videoFilter })
 //                      Get request used to test auto scaling 
 // ----------------------------------------------------------------------------------
 router.get('/merge', (req, res) => {
-    exec(`ffmpeg -safe 0 -f concat -i ./samples/test.txt -c copy output.flv`, (error, stdout, stderr) => {
+    res.setTimeout(0);
+    var startTime = performance.now()
+    exec(`ffmpeg -y -safe 0 -f concat -i ./samples/test.txt -c copy output.mp4`, (error, stdout, stderr) => {
         if (error) {
             console.log(`error: ${error.message}`);
             return;
         }
         else {
-            exec(`ffmpeg -i output.flv -vcodec libx264 -acodec aac output.mp4`, (error, stdout, stderr) => {
+            exec(`ffmpeg -y -i output.mp4 -vcodec libx264 -acodec aac output.flv`, (error, stdout, stderr) => {
                 if (error) {
                     console.log(`error: ${error.message}`);
                     return;
                 }
                 else {
-                    console.log("Videos successfully merged.")
-                    fs.unlinkSync('output.flv')
+                    console.log("Process done.")
+                    var endTime = performance.now()
+
+                    console.log(`Took ${(endTime - startTime) / 1000} seconds`)
+                    // fs.unlinkSync('output.flv')
                     fs.unlinkSync('output.mp4')
                     res.sendStatus(200)
                 }
             })
+            // console.log("Process done.")
+            // var endTime = performance.now()
+
+            // console.log(`Took ${endTime - startTime} milliseconds`)
+            // // fs.unlinkSync('output.flv')
+            // fs.unlinkSync('output.mp4')
+            // res.sendStatus(200)
         }
     })
+
 })
 
 // ----------------------------------------------------------------------------------
@@ -98,7 +112,7 @@ router.post('/merge', upload.array('files', 1000), (req, res) => {
         writeStream.end()
 
         // Execute ffmpeg commands
-        exec(`ffmpeg -safe 0 -f concat -i ${listFilePath} -c copy ${outputFilePath}`, (error, stdout, stderr) => {
+        exec(`ffmpeg -y -safe 0 -f concat -i ${listFilePath} -c copy ${outputFilePath}`, (error, stdout, stderr) => {
             if (error) {
                 console.log(`error: ${error.message}`);
                 return;
