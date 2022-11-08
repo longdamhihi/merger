@@ -124,11 +124,11 @@ router.post('/merge', upload.array('files', 1000), (req, res) => {
                         console.log('Downloading from Redis')
                         res.download(outputFilePath, (err) => {
                             if (err) throw err
-                            req.files.forEach(file => {
-                                fs.unlinkSync(file.path)
-                            });
-                            fs.unlinkSync(listFilePath)
-                            fs.unlinkSync(outputFilePath)
+                            // req.files.forEach(file => {
+                            //     fs.unlinkSync(file.path)
+                            // });
+                            // fs.unlinkSync(listFilePath)
+                            // fs.unlinkSync(outputFilePath)
                         })
                     } else {
                         // Not found in Redis
@@ -140,11 +140,11 @@ router.post('/merge', upload.array('files', 1000), (req, res) => {
                                 if (result) {
                                     res.download(outputFilePath, (err) => {
                                         if (err) throw err
-                                        req.files.forEach(file => {
-                                            fs.unlinkSync(file.path)
-                                        });
-                                        fs.unlinkSync(listFilePath)
-                                        fs.unlinkSync(outputFilePath)
+                                        // req.files.forEach(file => {
+                                        //     fs.unlinkSync(file.path)
+                                        // });
+                                        // fs.unlinkSync(listFilePath)
+                                        // fs.unlinkSync(outputFilePath)
                                     })
                                 }
                             }).catch((err) => {
@@ -159,12 +159,12 @@ router.post('/merge', upload.array('files', 1000), (req, res) => {
                                     console.log('Downloading from server')
                                     res.download(outputFilePath, (err) => {
                                         if (err) throw err
-                                        req.files.forEach(file => {
-                                            fs.unlinkSync(file.path)
-                                        });
+                                        // req.files.forEach(file => {
+                                        //     fs.unlinkSync(file.path)
+                                        // });
 
-                                        fs.unlinkSync(listFilePath)
-                                        fs.unlinkSync(outputFilePath)
+                                        // fs.unlinkSync(listFilePath)
+                                        // fs.unlinkSync(outputFilePath)
                                     })
                                 } else {
                                     res.json(err);
